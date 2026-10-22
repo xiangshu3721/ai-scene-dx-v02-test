@@ -3,3 +3,9 @@ __pycache__/
 .DS_Store
 shots/
 *.log
+
+# 本地部署密钥（绝不提交）
+**/cloudbaserc.local.json
+**/.env
+**/.env.*
+server/cloudbase/.deploy/

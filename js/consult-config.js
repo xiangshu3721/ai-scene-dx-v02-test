@@ -10,8 +10,8 @@
  */
 window.ASDX_CONSULT = {
   ADVISOR_NAME: "翔叔",
-  WECHAT_ID: "",
-  QR_IMAGE: "",
+  WECHAT_ID: "xiangshu-pm",
+  QR_IMAGE: "img/wechat-qr.png",
   REMARK: "AI场景诊断",
-  CONTACT_NOTE: ""            // 可选：额外说明，如「工作日晚上回复」
+  CONTACT_NOTE: "扫码或搜微信号加我，备注「AI场景诊断」"            // 可选：额外说明，如「工作日晚上回复」
 };

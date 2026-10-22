@@ -1,0 +1,25 @@
+{
+  "envId": "root-journey-prod-d4d7pzd0a8f805",
+  "functionRoot": "./",
+  "functions": [
+    {
+      "name": "asdxAiProxy",
+      "type": "HTTP",
+      "timeout": 60,
+      "memorySize": 256,
+      "runtime": "Nodejs20.19",
+      "installDependency": false,
+      "ignore": [
+        "cloudbaserc.local.json",
+        ".env",
+        ".env.*",
+        "*.local.json"
+      ],
+      "envVariables": {
+        "DEEPSEEK_MODEL": "deepseek-chat",
+        "ALLOW_ORIGINS": "https://xiangshu3721.github.io,https://raw.githack.com",
+        "PORT": "9000"
+      }
+    }
+  ]
+}

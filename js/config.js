@@ -28,7 +28,7 @@ window.ASDX_CONFIG = {
   SUBMIT_TIMEOUT_MS: 12000,
   QUESTION_PROVIDER: "rules",
   PRODUCT_API_BASE: "",
-  AI_ENDPOINT: "",
+  AI_ENDPOINT: "https://root-journey-prod-d4d7pzd0a8f805-1304965105.ap-shanghai.app.tcloudbase.com/asdx-ai",
   AI_TIMEOUT_MS: 25000,
   TRACK_ENDPOINT: "",
   ADVISOR_NAME: "翔叔",
