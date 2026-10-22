@@ -16,7 +16,7 @@
   function idt() { return E.identityOf(S.profile); }
   function scenes() { return E.scenesFor(idt()); }
   function stars(n) { var s = ""; for (var i = 0; i < 5; i++) s += i < n ? "★" : "☆"; return s; }
-  function reports() { var r = store.get(K.reports, []); return Array.isArray(r) ? r.filter(function (x) { return x && x.id && (x.v === 2 ? !!x.a : (x.profile && x.answers)); }) : []; }
+  function reports() { var r = store.get(K.reports, []); return Array.isArray(r) ? r.filter(function (x) { return x && x.id && ((x.v === 2 || x.v === 3) ? !!x.a : (x.profile && x.answers)); }) : []; }
 
   /* ---------- 渲染入口 ---------- */
   function go(view) { S.view = view; saveProg(); render(); }
@@ -53,7 +53,7 @@
   function openRec(rec, ok) {
     S = fresh(); S.rec = rec; if (ok != null) S.saveOk = ok;
     TRACK("report_view", { code: rec.code || rec.id, v: rec.v || 1 });
-    go(rec.v === 2 ? "report2" : "report");
+    go(rec.v === 2 || rec.v === 3 ? "report2" : "report");
   }
   var V2 = window.ASDX_V2_UI({
     state: function () { return S; },
@@ -62,12 +62,21 @@
     home: function () { S = fresh(); render(); },
     clearProg: function () { store.del(K.prog); },
     saveReport: function (rec) { return store.set(K.reports, [rec].concat(reports()).slice(0, 20)); },
+    persistRec: function () {
+      if (!S.rec || !S.rec.id) return false;
+      var l = store.get(K.reports, []); if (!Array.isArray(l)) l = [];
+      var found = false;
+      l = l.map(function (r) { if (r && r.id === S.rec.id) { found = true; return S.rec; } return r; });
+      if (!found) l = [S.rec].concat(l);
+      return store.set(K.reports, l.slice(0, 20));
+    },
     openRec: openRec,
     nickname: function () { var c = store.get(K.contact, {}) || {}; return String(c.name || "").trim().slice(0, 20); },
     markIntent: function () { // 点联系方式 = 意向（不等于预约）
       if (!S.rec || !S.rec.id) return;
       var l = store.get(K.reports, []); if (!Array.isArray(l)) return;
-      l.forEach(function (r) { if (r && r.id === S.rec.id) { r.consult = r.consult || {}; r.consult.intent = true; r.consult.intentAt = r.consult.intentAt || Date.now(); } });
+      S.rec.consult = S.rec.consult || {}; S.rec.consult.intent = true; S.rec.consult.intentAt = S.rec.consult.intentAt || Date.now();
+      l.forEach(function (r) { if (r && r.id === S.rec.id) r.consult = S.rec.consult; });
       store.set(K.reports, l);
     }
   });
@@ -588,6 +597,7 @@
   // 键盘：数字键快速作答（桌面）
   document.addEventListener("keydown", function (e) {
     if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+    if ((e.key === "Enter" || e.key === " ") && e.target && e.target.getAttribute && e.target.getAttribute("role") === "button" && e.target.getAttribute("data-act")) { e.preventDefault(); e.target.click(); return; }
     if (e.key === "Backspace" && ["profile", "scan", "follow", "scanIntro", "q"].indexOf(S.view) >= 0) { e.preventDefault(); back(); }
   });
 

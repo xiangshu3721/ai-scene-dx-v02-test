@@ -335,3 +335,12 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; letter-spacing: .01em;
 .report.v2 .r-first { min-height: 0; justify-content: flex-start; padding: 8px 0 4px; }
 .report.v2 .r-first + .r-sec { padding-top: 22px; }
 .v2 .r-end .btn-lg { margin: 0 auto 4px; display: flex; }
+button.opp, .opp[role="button"] { width: 100%; text-align: left; display: block; }
+.opp.is-active { box-shadow: inset 0 0 0 2px var(--c, var(--ink)); }
+.v2-facts { margin: 10px 0 0; padding-left: 18px; color: var(--soft); font-size: 14px; text-align: left; }
+.v2-facts li { margin: 4px 0; }
+.v2-micro .q-next { margin-top: 12px; }
+.v2-micro-result { margin-top: 12px; }
+.v2-micro-err { color: var(--red-deep); background: var(--red-bg); border-radius: 10px; padding: 10px 12px; margin: 0; }
+.v2-sample { margin-top: 16px; }
+.v2-artifact, .v2-ai p { white-space: pre-wrap; }

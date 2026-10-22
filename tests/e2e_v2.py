@@ -38,8 +38,10 @@ def run(p, key, d, ai_mode=None):
     if key == "retired": shot(p, "03-q3-scenes-retired.png")
     nxt(p)
     for x in d["pains"]: click_opt(p, x)
-    if d["top"]: p.locator(".v2-pain", has_text=d["top"]).locator('[data-act="v2PainTop"]').click()
-    if key == "boss": shot(p, "04-q4-pains.png")
+    if key == "boss":
+        shot(p, "04-q4-pains.png")
+        check(p.locator('[data-act="v2PainTop"]').count() == 0 and "设为最优先" not in p.inner_text("body"), "A 困难多选没有「设为最优先」")
+        check("同等重要" in p.inner_text(".q-sub"), "A 多选说明是并列、不分先后")
     nxt(p)
     if d["freq"]:
         p.locator("button.chip", has_text=d["freq"]).click(); p.locator("button.chip", has_text=d["impact"]).click()
@@ -78,19 +80,34 @@ with sync_playwright() as pw:
     check(all(x in t for x in "测聊定做") and p.inner_text("h1").startswith("你的生活和工作里"), "主标题与四步保留")
     check(p.locator("#histT").count() == 1, "保留「我的报告」入口")
     shot(p, "01-home.png")
+    c.close()
 
-    print("· 多身份，无 AI（本地规则）")
+    print("· 多身份，无 AI（本地规则 / 基础初诊）")
+    c, p, errs = ctx('window.ASDX_CONFIG.AI_ENDPOINT="";')
     for k, d in PERSONAS.items():
         run(p, k, d)
         st = p.evaluate("() => window.ASDX_APP.state().rec")
         r = st["report"]
-        check(r["source"] == "rules" and len(r["opps"]) == 3, k + "：报告生成（规则版），3 个机会")
-        check(any(o["source"] == "user" for o in r["opps"]), k + "：至少 1 个机会来自用户明说")
-        check(p.locator(".v2-flow li").count() >= 4 and p.locator(".v2-demo-tag").count() == 1, k + "：流程对比卡 + 演示标注")
-        check(p.locator(".v2-pending").count() == 1 and p.locator('[data-act="v2Contact"]').count() == 0, k + "：联系方式未配置 → 显示待配置、无失效按钮")
-        m = st["meta"]; check(bool(st["code"]) and m["identity"] and m["primary"] and "consult" in st, k + "：存储字段齐全 " + st["code"])
+        nopp = len(r.get("top_opportunities") or r.get("opps") or [])
+        check(r["source"] == "rules" and r.get("analysis_version") == "v0.3" and nopp <= 3, k + "：基础初诊，机会不超过 3")
+        check("基础初诊" in p.inner_text("#report"), k + "：页面标明基础初诊")
+        if k == "nopain":
+            check(nopp <= 1 and "没有标出明显困难" in r["insight"], k + "：无痛点不强行推荐")
+        else:
+            check(nopp >= 1 and any(o["source"] == "user" for o in r["opps"]), k + "：至少 1 个机会来自用户明说")
+            check(p.locator("#flowBox").get_attribute("data-scenario") == r["recommended_scenario_id"], k + "：前后对比绑定建议场景")
+            check(p.locator("#microBox").get_attribute("data-scenario") == r["active_scenario_id"], k + "：微体验绑定当前场景")
+            check(p.locator(".v2-demo-tag", has_text="示例").count() >= 1 and p.locator(".v2-demo-tag", has_text="演示").count() == 0, k + "：静态内容标示例，不冒充演示结果")
+        check("免费45分钟" in p.inner_text("#consult") and "xiangshu-pm" in p.inner_text("#consult") and "AI行动建议卡" in p.inner_text("#consult"), k + "：免费45分钟会诊入口")
+        check(p.locator('[data-act="v2Contact"]').count() == 1, k + "：会诊按钮可点")
+        m = st["meta"]; check(bool(st["code"]) and m["identity"] and "consult" in st, k + "：存储字段齐全 " + st["code"])
         if k == "custom_job": check(r["sensitive"] and p.locator(".v2-safe").count() == 1 and "社区医生" in m["identity"], k + "：敏感场景人机协作提示 + 自填职业")
-        if k == "nopain": check("没有特别头疼" in r["insight"], k + "：无痛点洞察文案、跳过第5题")
+        if k == "boss" and nopp >= 2:
+            before = p.evaluate("() => { const r = window.ASDX_APP.state().rec.report; return { ids: r.top_opportunities.map(o => o.scenario_id), rec: r.recommended_scenario_id }; }")
+            p.locator("article.opp").nth(1).click()
+            after = p.evaluate("() => { const r = window.ASDX_APP.state().rec.report; return { ids: r.top_opportunities.map(o => o.scenario_id), rec: r.recommended_scenario_id, active: r.active_scenario_id }; }")
+            check(after["ids"] == before["ids"] and after["rec"] == before["rec"] and after["active"] == before["ids"][1], "G 切换场景不改变推荐排名")
+            check(p.locator("#flowBox").get_attribute("data-scenario") == after["active"] and p.locator("#microBox").get_attribute("data-scenario") == after["active"], "G 对比和微体验跟着当前场景")
         shot(p, "08-report-%s.png" % k)
     check(not errs, "无页面报错 " + str(errs[:2]))
     ev = p.evaluate("() => window.ASDX_TRACK.list().map(e => e.event)")
@@ -111,7 +128,7 @@ with sync_playwright() as pw:
         run(p, "boss", PERSONAS["boss"])
         r = p.evaluate("() => window.ASDX_APP.state().rec.report")
         txt = p.inner_text("#report")
-        check(r["source"] == "rules" and len(r["opps"]) == 3 and "80%" not in txt and "一键" not in txt and not errs, "AI " + name + " → 规则报告，页面不崩")
+        check(r["source"] == "rules" and r.get("analysis_version") == "v0.3" and "80%" not in txt and "一键" not in txt and "免费45分钟" in txt and not errs, "AI " + name + " → 基础初诊，页面不崩、会诊还在")
         if name == "500": shot(p, "09-report-ai-failed.png")
         c.close()
 
@@ -127,13 +144,47 @@ with sync_playwright() as pw:
     c, p, errs = ctx('window.ASDX_CONFIG.AI_ENDPOINT="https://ai.test";', ai=ok_handler)
     run(p, "boss", PERSONAS["boss"], ai_mode="follow")
     st = p.evaluate("() => window.ASDX_APP.state().rec")
-    check(st["report"]["source"] == "ai" and st["report"]["opps"][0]["name"] == "销售表自动汇总" and st["a"]["followUp"]["answer"], "AI 报告渲染 + 追问答案记录")
+    check(st["report"]["source"] == "ai" and st["report"]["top_opportunities"][0]["scenario_id"] == "routine" and st["report"]["top_opportunities"][0]["title"] == "销售表自动汇总" and st["a"]["followUp"]["answer"], "AI 报告按场景编号承接，追问答案有记录")
     check(p.locator(".v2-badge", has_text="你可能还没想到").count() == 1, "主动发现标「你可能还没想到」")
     shot(p, "10-report-ai-ok.png")
     c.close()
 
+    print("· 微体验失败不串场景")
+    def micro_handler(r):
+        if "micro" in r.request.url:
+            r.abort(); return
+        body = {"need": False} if "followup" in r.request.url else good
+        r.fulfill(status=200, content_type="application/json", headers={"Access-Control-Allow-Origin": "*"}, body=json.dumps(body, ensure_ascii=False))
+    c, p, errs = ctx('window.ASDX_CONFIG.AI_ENDPOINT="https://ai.test";', ai=micro_handler)
+    run(p, "boss", PERSONAS["boss"])
+    sid = p.evaluate("() => window.ASDX_APP.state().rec.report.active_scenario_id")
+    p.fill("#microBox textarea", "门店周一卖了20份，周二卖了18份，想收成一张周表")
+    p.click('[data-act="v2Micro"]')
+    p.wait_for_selector(".v2-micro-err", timeout=8000)
+    check("没有生成成功" in p.inner_text(".v2-micro-result"), "K 微体验失败有明确提示")
+    check(p.locator("#microBox").get_attribute("data-scenario") == sid and p.locator("#flowBox").get_attribute("data-scenario") == sid, "K 失败后场景编号不变")
+    check("扫地机器人" not in p.inner_text("#microBox") and not errs, "K 失败时不拿无关演示顶上，页面不崩")
+    c.close()
+
+    print("· 微体验成功只写回当前场景")
+    def micro_ok(r):
+        if "micro" in r.request.url:
+            req = json.loads(r.request.post_data or "{}")
+            body = {"scenario_id": "create", "artifact_title": "跑题了", "artifact": "这是别的场景", "next_step": "不该出现"} if req.get("scenario_id") != "routine" else {"scenario_id": req.get("scenario_id"), "artifact_title": "本周销售空表", "artifact": "门店｜周一｜周二\n（数字待你核对）", "next_step": "补上你知道的两天数字", "missing": ["具体门店名"]}
+            r.fulfill(status=200, content_type="application/json", headers={"Access-Control-Allow-Origin": "*"}, body=json.dumps(body, ensure_ascii=False)); return
+        body = {"need": False} if "followup" in r.request.url else good
+        r.fulfill(status=200, content_type="application/json", headers={"Access-Control-Allow-Origin": "*"}, body=json.dumps(body, ensure_ascii=False))
+    c, p, errs = ctx('window.ASDX_CONFIG.AI_ENDPOINT="https://ai.test";', ai=micro_ok)
+    run(p, "boss", PERSONAS["boss"])
+    p.fill("#microBox textarea", "门店周一卖了20份，周二卖了18份")
+    p.click('[data-act="v2Micro"]')
+    p.wait_for_selector(".v2-micro-result .v2-ai", timeout=8000)
+    check("本周销售空表" in p.inner_text(".v2-micro-result") and "跑题了" not in p.inner_text("#microBox") and not errs, "F 微体验结果属于当前场景")
+    check("示例" in p.inner_text("#microBox aside"), "静态样例仍标成示例")
+    c.close()
+
     print("· 会诊联系方式配置")
-    c, p, errs = ctx(consult={"ADVISOR_NAME": "翔叔", "WECHAT_ID": "TEST_WX_ONLY", "QR_IMAGE": "", "REMARK": "AI场景诊断"})
+    c, p, errs = ctx('window.ASDX_CONFIG.AI_ENDPOINT="";', consult={"ADVISOR_NAME": "翔叔", "WECHAT_ID": "TEST_WX_ONLY", "QR_IMAGE": "", "REMARK": "AI场景诊断"})
     run(p, "retired", PERSONAS["retired"])
     p.click('[data-act="v2Contact"]'); p.wait_for_selector("#v2Modal:not([hidden])")
     check(p.locator(".v2-qr").count() == 0 and "TEST_WX_ONLY" in p.inner_text("#v2Modal"), "只有微信号：不显示二维码，只显示微信号")
@@ -144,7 +195,7 @@ with sync_playwright() as pw:
     check(p.evaluate("() => JSON.parse(localStorage['asdx.reports.v1'])[0].consult.intent") is True, "报告记录意向（不等于预约）")
     c.close()
     qr = "data:image/svg+xml," + "%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%23ddd'/%3E%3Ctext x='100' y='105' text-anchor='middle'%3E测试二维码%3C/text%3E%3C/svg%3E"
-    c, p, errs = ctx(consult={"WECHAT_ID": "", "QR_IMAGE": qr})
+    c, p, errs = ctx('window.ASDX_CONFIG.AI_ENDPOINT="";', consult={"WECHAT_ID": "", "QR_IMAGE": qr})
     run(p, "student", PERSONAS["student"]); p.click('[data-act="v2Contact"]')
     check(p.locator(".v2-qr").count() == 1 and p.locator("#v2Modal .v2-wx").count() == 0, "只有二维码：显示二维码")
     shot(p, "12-consult-qr.png"); c.close()

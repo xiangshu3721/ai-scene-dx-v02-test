@@ -28,4 +28,10 @@ tcb service create -e root-journey-prod-d4d7pzd0a8f805 -p /asdx-ai -f asdxAiProx
 
 正确时 `tcb service list` 里 Trigger type 应为 **Cloud hosting**。
 
-5. 健康检查：`curl -sS "$BASE/health"` → `{"ok":true,"ai":true}`
+5. 健康检查：`curl -sS "$BASE/health"` → `{"ok":true,"ai":true,"version":"v0.3"}`。`ai:true` 只表示配置了密钥，响应里不会出现密钥。
+
+## V0.3（2026-10-22）
+
+`/report` 会用同一个 DeepSeek 模型连续调用三次（理解 → 评估 → 成稿），所以函数超时要保持 60 秒。新增 `POST /micro`：按 `scenario_id` 和用户补充的材料生成微体验，失败只返回 `{ "error": "ai_unavailable", "scenario_id": "..." }`。
+
+本次云开发环境没有腾讯云登录态，不能代部署。在已经登录 `tcb` 的 Mac 上，于 `server/cloudbase` 执行上面的 `tcb fn deploy`。部署完成后用无痕窗口打开测试站再验收；详细步骤见 `docs/v0.3/V0.3修改方案.md` 第 11 节。
