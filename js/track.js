@@ -4,7 +4,7 @@
  * 接口：ASDX_CONFIG.TRACK_ENDPOINT 填了地址后，用 sendBeacon 发送 {event, data, t}。
  * 只发匿名数据（报告编号、事件名），不含自由文字。
  * 事件：test_complete / report_view / consult_open / contact_qr_open / contact_copy_wechat /
- *       contact_save_qr / contact_copy_booking   （点联系方式 = 意向，不等于预约）
+ *       contact_save_qr   （点联系方式 = 意向，不等于预约）
  */
 (function (root) {
   "use strict";
