@@ -331,4 +331,7 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; letter-spacing: .01em;
 .v2-modal-box { background: var(--card); border-radius: 16px; padding: 20px; width: 100%; max-width: 340px; text-align: center; display: flex; flex-direction: column; gap: 8px; }
 .v2-qr { width: 220px; height: 220px; object-fit: contain; margin: 0 auto; -webkit-touch-callout: default; }
 .v2-saveimg-top { margin: 4px 0 0; }
+/* 报告首段不再撑满一屏并垂直居中，洞察下方直接接到机会卡片 */
+.report.v2 .r-first { min-height: 0; justify-content: flex-start; padding: 8px 0 4px; }
+.report.v2 .r-first + .r-sec { padding-top: 22px; }
 .v2 .r-end .btn-lg { margin: 0 auto 4px; display: flex; }
