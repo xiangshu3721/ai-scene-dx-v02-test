@@ -323,8 +323,6 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; letter-spacing: .01em;
 .v2-four, .v2-card-list { margin: 0; padding-left: 22px; }
 .v2-wx { text-align: center; margin: 12px 0 0; }
 .v2-pending { text-align: center; background: var(--gray-bg); color: var(--soft); border-radius: 12px; padding: 14px; margin-top: 18px; }
-.v2-booktext { margin-top: 18px; background: var(--sheet); border: 1px dashed var(--line); border-radius: 12px; padding: 12px 14px; font-size: 14px; }
-.v2-booktext p:first-child { margin-top: 0; user-select: text; -webkit-user-select: text; }
 .v2-homeconsult { margin: 12px 0 0; }
 .v2-modal { position: fixed; inset: 0; background: rgba(30, 24, 20, .55); display: flex; align-items: center; justify-content: center; z-index: 60; padding: 20px; }
 .v2-modal[hidden] { display: none; }

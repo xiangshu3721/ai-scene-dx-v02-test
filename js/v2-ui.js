@@ -15,7 +15,6 @@
     return { name: c.ADVISOR_NAME || "翔叔", wx: String(c.WECHAT_ID || "").trim(), qr: String(c.QR_IMAGE || "").trim(), remark: c.REMARK || "AI场景诊断", note: c.CONTACT_NOTE || "" };
   }
   function newCode() { var s = (Date.now().toString(36) + Math.random().toString(36).slice(2, 6)).toUpperCase(); return "DX" + s.slice(-6); }
-  function bookingText(code) { return "你好，我刚完成AI场景诊断，想预约一次免费45分钟的AI场景会诊。我的报告编号是：" + (code || "（暂无）") + "。"; }
   function nl(s) { return esc(s || "").replace(/\n/g, "<br>"); }
 
   function postJSON(path, body, ms) {
@@ -170,7 +169,7 @@
       if (r.sensitive) h += '<p class="v2-safe">涉及健康、法律、财务或隐私的内容，AI 只负责整理和出草稿，结论请由你或专业人士把关。</p>';
       h += "</section>";
       if (cur) h += flowHtml(cur) + microHtml(rec, cur);
-      h += consultHtml(rec.code, cur && cur.consult_questions);
+      h += consultHtml(cur && cur.consult_questions);
       h += endHtml();
       h += qrModal();
       return h;
@@ -245,7 +244,7 @@
       var d = DEMOS[(r.demo && r.demo.type) || "plan"] || DEMOS.plan;
       h += '<section class="r-sec v2-demo"><h2>AI 微体验 <span class="v2-demo-tag">演示</span></h2><p class="sec-sub">' + esc(d.t) + "。这是当时保存的模拟演示，不是新的实时结果。</p>" +
         '<div class="v2-chat"><p class="v2-me"><span>你</span>' + esc(d.inp) + '</p><div class="v2-ai"><span>AI（演示）</span>' + d.out + "</div></div></section>";
-      h += consultHtml(rec.code);
+      h += consultHtml();
       h += endHtml();
       h += qrModal();
       return h;
@@ -256,7 +255,7 @@
         '<p class="note">' + (S().saveOk === false ? "这台设备的浏览器不让存数据，报告关掉就没了，建议先截图。" : "报告已保存在这台设备上。再次打开不会重新抽一次排名。") + "</p></section></main>";
     }
 
-    function consultHtml(code, questions) {
+    function consultHtml(questions) {
       var c = consultCfg(), has = c.wx || c.qr;
       var h = '<section class="r-sec v2-consult" id="consult" aria-labelledby="cT"><p class="kicker">免费45分钟 · AI场景会诊</p><h2 id="cT">你的这些AI机会，到底该怎么真正实现？</h2>';
       h += "<p>报告帮你看到方向。哪个先做、具体怎么落地，还要结合你的真实情况聊清楚。</p>";
@@ -270,7 +269,7 @@
         if (c.wx) h += '<p class="v2-wx">微信号：<b>' + esc(c.wx) + '</b> <button type="button" class="btn-link" data-act="v2CopyWx">复制微信号</button></p>';
         h += '<p class="note">添加时请备注「' + esc(c.remark) + "」" + (c.note ? "。" + esc(c.note) : "") + "</p>";
       } else h += '<p class="v2-pending" role="note">联系方式待配置，请稍后再来看看。</p>';
-      h += '<div class="v2-booktext"><p>' + esc(bookingText(code)) + '</p><button type="button" class="btn btn-ghost" data-act="v2CopyBook" data-code="' + esc(code || "") + '">复制预约说明</button><p class="note" id="v2CopyMsg" aria-live="polite"></p></div></section>';
+      h += "</section>";
       return h;
     }
     function qrModal() {
@@ -287,7 +286,7 @@
       var rec = S().rec;
       var r = rec && reportOf(rec);
       var cur = r && isV3(r) ? (oppById(r, r.active_scenario_id) || r.top_opportunities[0]) : null;
-      return api.brandBar() + '<main class="wrap report v2">' + consultHtml(rec && rec.code, cur && cur.consult_questions) + '<div class="r-actions"><button type="button" class="btn btn-ghost" data-act="home">回到首页</button></div></main>' + qrModal();
+      return api.brandBar() + '<main class="wrap report v2">' + consultHtml(cur && cur.consult_questions) + '<div class="r-actions"><button type="button" class="btn btn-ghost" data-act="home">回到首页</button></div></main>' + qrModal();
     };
 
     function next() {
@@ -473,11 +472,6 @@
     A.v2CloseModal = function () { var m = document.getElementById("v2Modal"); if (m) m.hidden = true; document.body.classList.remove("no-scroll"); };
     A.v2CopyWx = function () { copy(consultCfg().wx, "微信号已复制，打开微信添加好友，备注「" + consultCfg().remark + "」"); TRACK("contact_copy_wechat", { code: S().rec && S().rec.code }); api.markIntent(); };
     A.v2SaveQr = function () { TRACK("contact_save_qr", { code: S().rec && S().rec.code }); api.markIntent(); return true; };
-    A.v2CopyBook = function (el) {
-      var code = el.getAttribute("data-code");
-      U.copyText(bookingText(code)).then(function (ok) { var m = document.getElementById("v2CopyMsg"); if (m) m.textContent = ok ? "已复制，添加微信后粘贴发送就行。" : "这台设备不让自动复制，请长按上面的文字手动复制。"; });
-      TRACK("contact_copy_booking", { code: code }); api.markIntent();
-    };
 
     function onInput(e) {
       var t = e.target;
@@ -497,6 +491,6 @@
       return true;
     }
 
-    return { views: V, actions: A, onInput: onInput, imgBlocks: imgBlocks, reportOf: reportOf, consultHtml: consultHtml, bookingText: bookingText };
+    return { views: V, actions: A, onInput: onInput, imgBlocks: imgBlocks, reportOf: reportOf, consultHtml: consultHtml };
   };
 })(window);
